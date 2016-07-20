@@ -38,20 +38,13 @@ func NewEventHook(source string, levels []logrus.Level) (*EventHook, error) {
 func (hook *EventHook) Fire(entry *logrus.Entry) error {
 	msg, err := entry.String()
 	var eventID uint32 = 1
-	entryEventID, ok := entry.Data["event_id"]
+	id, ok := entry.Data["event_id"].(string)
 	if ok {
-		switch id := entryEventID.(type) {
-		case int:
-			eventID = uint32(id)
-		case uint32:
-			eventID = id
-		case string:
-			// attempt to convert to uint32 type event id
-			var id64 uint64
-			id64, err = strconv.ParseUint(id, 10, 64)
-			if err == nil {
-				eventID = uint32(id64)
-			}
+		// attempt to convert to uint32 type event id
+		var id64 uint64
+		id64, err = strconv.ParseUint(id, 10, 64)
+		if err == nil {
+			eventID = uint32(id64)
 		}
 	}
 
