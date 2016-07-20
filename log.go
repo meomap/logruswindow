@@ -1,6 +1,8 @@
 package logruswindow
 
 import (
+	"strconv"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/windows/svc/eventlog"
@@ -32,19 +34,34 @@ func NewEventHook(source string, levels []logrus.Level) (*EventHook, error) {
 	}, nil
 }
 
-// Fire extracts logrus entry and send to window event log
+// Fire extracts logrus entry and sends to window event log
 func (hook *EventHook) Fire(entry *logrus.Entry) error {
 	msg, err := entry.String()
-	if err != nil {
-		return errors.Wrap(err, "entry.String")
+	var eventID uint32 = 1
+	entryEventID, ok := entry.Data["event_id"]
+	if ok {
+		switch id := entryEventID.(type) {
+		case int:
+			eventID = uint32(id)
+		case uint32:
+			eventID = id
+		case string:
+			// attempt to convert to uint32 type event id
+			var id64 uint64
+			id64, err = strconv.ParseUint(id, 10, 64)
+			if err == nil {
+				eventID = uint32(id64)
+			}
+		}
 	}
+
 	switch entry.Level {
 	case logrus.DebugLevel, logrus.InfoLevel:
-		return errors.Wrap(hook.Info(1, msg), "hook.Info")
+		return errors.Wrap(hook.Info(eventID, msg), "hook.Info")
 	case logrus.WarnLevel:
-		return errors.Wrap(hook.Warning(1, msg), "hook.Warning")
+		return errors.Wrap(hook.Warning(eventID, msg), "hook.Warning")
 	case logrus.ErrorLevel, logrus.FatalLevel, logrus.PanicLevel:
-		return errors.Wrap(hook.Error(1, msg), "hook.Error")
+		return errors.Wrap(hook.Error(eventID, msg), "hook.Error")
 	}
 	return errors.Errorf("Unknown logrus level %s", entry.Level.String())
 }
@@ -54,7 +71,7 @@ func (hook *EventHook) Levels() []logrus.Level {
 	return hook.levels
 }
 
-// Close event log & remove registry
+// Close event log & removes registry
 func (hook *EventHook) Close() error {
 	if err := hook.Log.Close(); err != nil {
 		return errors.Wrapf(err, "eventlog.Log.Close()")

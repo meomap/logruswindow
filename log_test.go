@@ -37,6 +37,14 @@ func TestEventHook(t *testing.T) {
 	}
 
 	logger.WithFields(fields).Error(msg)
-	logger.WithFields(fields).Info(msg)
-	logger.WithFields(fields).Debug(msg)
+
+	t.Log("test with event id")
+	fields["event_id"] = "321"
+	logger.WithFields(fields).Error(msg)
+
+	fields["event_id"] = "50b432ff-2be4-46c3-bfc3-df63ba299670"
+	logger.WithFields(fields).Error(msg)
+
+	fields["event_id"] = 432
+	logger.WithFields(fields).Error(msg)
 }
