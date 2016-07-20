@@ -1,4 +1,4 @@
-package logruswindow
+package logruswindows
 
 import (
 	"strconv"
